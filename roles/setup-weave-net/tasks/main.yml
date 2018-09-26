@@ -1,0 +1,11 @@
+---
+- name: setup-weave-net | Template Weave Net k8s deployment file
+  template:
+    src: "weave.yaml.j2"
+    dest: "~/weave.yaml"
+    mode: 0755
+    owner: "root"
+    group: "root"
+
+- name: setup-masters | Deploy Weave Net using k8s
+  shell: kubectl apply -f /root/weave.yaml

@@ -1,0 +1,15 @@
+---
+
+- name: setup-ingress | Deploy nginx ingress controller
+  shell: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
+
+- name: setup-ingress | Deploy nginx service | Template service deployment manifest file
+  template:
+    src: nginx-service.yml.j2
+    dest: /tmp/nginx-service.yml
+    owner: root
+    group: root
+    mode: 0755
+
+- name: setup-ingress | Deploy nginx service | Deploy service deployment manifest file
+  shell: kubectl apply -f /tmp/nginx-service.yml

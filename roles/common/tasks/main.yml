@@ -1,0 +1,53 @@
+- name: common | Install k8s components | Config Kubernetes repository
+  yum_repository:
+    name: Kubernetes
+    description: Kubernetes
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    enabled: yes
+    gpgcheck: no
+    repo_gpgcheck: no
+    gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+- name: common | Install k8s components | Yum install kubelet, kubeadm, kubectl, and docker
+  shell: yum install -y kubectl-{{ KUBE_VERSION }} kubelet-{{ KUBE_VERSION }} kubeadm-{{ KUBE_VERSION }} docker-{{ DOCKER_VERSION }} --disableexcludes=kubernetes
+
+- name: common | Install k8s components | Template docker config
+  template:
+    src: "docker.j2"
+    dest: "/etc/sysconfig/docker"
+    mode: 0755
+    owner: "root"
+    group: "root"
+
+- name: common | Install k8s components | Creates ~/.docker folder
+  file:
+    path: "~/.docker"
+    owner: root
+    group: root
+    state: directory
+    mode: 0755
+
+- name: common | Install k8s components | Creates /etc/docker folder
+  file:
+    path: "etc/docker"
+    owner: root
+    group: root
+    state: directory
+    mode: 0755
+
+- name: common | Install k8s components | Copy daemon.json to /etc/docker folder
+  copy:
+    src: "daemon.json"
+    dest: "/etc/docker/daemon.json"
+    mode: 0755
+    owner: root
+    group: root
+
+- name: common | Install k8s components | Restart daemon
+  shell: systemctl daemon-reload
+
+- name: common | Install k8s components | Start and enable docker service
+  shell: systemctl enable docker && systemctl restart docker
+
+- name: common | Install k8s components | Start and enable kubelet service
+  shell: systemctl enable kubelet && systemctl restart kubelet

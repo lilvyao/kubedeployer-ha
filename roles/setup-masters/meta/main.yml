@@ -1,0 +1,5 @@
+---
+# The following role gets executed before the main tasks of setup-masters
+
+dependencies:
+  - { role: common }

@@ -1,0 +1,47 @@
+---
+- name: setup-etcd | Creates directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - /etc/etcd
+    - /var/lib/etcd
+
+- name: setup-etcd | Copy certs and keys to etcd folder
+  shell: cp ~/ca.pem ~/kubernetes.pem ~/kubernetes-key.pem /etc/etcd
+
+- name: setup-etcd | Install etcd | Check if binary folder already exists
+  stat:
+    path: ~/etcd-{{ ETCD_VERSION }}-linux-amd64
+  register: etcd_binary_folder
+
+- name: setup-etcd | Install etcd | Download etcd binaries and extract the content
+  unarchive:
+    src: https://github.com/coreos/etcd/releases/download/{{ ETCD_VERSION }}/etcd-{{ ETCD_VERSION }}-linux-amd64.tar.gz
+    dest: "~"
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: yes
+  when: not etcd_binary_folder.stat.exists
+
+- name: setup-etcd | Install etcd | Copy etcd executable files to /usr/local/bin/
+  shell:  cp ~/etcd-{{ ETCD_VERSION }}-linux-amd64/etcd* /usr/local/bin/
+
+- name: setup-etcd | Config etcd service | Template etcd.service
+  template:
+    src: etcd.service.j2
+    dest: /etc/systemd/system/etcd.service
+    owner: root
+    group: root
+    mode: 0755
+
+- name: setup-etcd | Config etcd service | Start and enable etcd service
+  systemd:
+    name: etcd
+    daemon_reload: yes
+    state: restarted
+    enabled: yes

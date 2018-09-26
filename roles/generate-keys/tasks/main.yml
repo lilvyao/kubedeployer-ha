@@ -1,0 +1,69 @@
+---
+
+- name: generate-keys | Create keys directory
+  file:
+    path: "~/keys"
+    owner: root
+    group: root
+    state: directory
+    mode: 0755
+
+- name: generate-keys | Installing cfssl |  Download cfssl_linux-amd64
+  get_url:
+    url: https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+    dest: /usr/local/bin/cfssl
+    mode: 0755
+
+- name: generate-keys | Installing cfssl |  Download cfssljson_linux-amd64
+  get_url:
+    url: https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+    dest: /usr/local/bin/cfssljson
+    mode: 0755
+
+- name: generate-keys | Copying key templates |  Copy ca-config.json
+  copy:
+    src: ca-config.json
+    dest: ~/keys/ca-config.json
+    owner: root
+    group: root
+    mode: 0744
+
+- name: generate-keys | Copying key templates |  Copy ca-csr.json
+  copy:
+    src: ca-csr.json
+    dest: ~/keys/ca-csr.json
+    owner: root
+    group: root
+    mode: 0744
+
+- name: generate-keys | Copying key templates |  Copy kubernetes-csr.json
+  copy:
+    src: kubernetes-csr.json
+    dest: ~/keys/kubernetes-csr.json
+    owner: root
+    group: root
+    mode: 0744
+
+- name: generate-keys | Generating ca-key.pem and ca.pem
+  shell: cfssl gencert -initca ca-csr.json | cfssljson -bare ca
+  args:
+    chdir: ~/keys
+
+- name: generate-keys | Generating kubernetes-key.pem and kubernetes.pem
+  shell: cfssl gencert \
+        -ca=ca.pem \
+        -ca-key=ca-key.pem \
+        -config=ca-config.json \
+        -hostname={{ ALL_IP }},127.0.0.1,kubernetes.default \
+        -profile=kubernetes kubernetes-csr.json | \
+        cfssljson -bare kubernetes
+  args:
+    chdir: ~/keys
+
+- name: generate-keys | Change keys file permissions to 755
+  shell: chmod -R 755 ~/keys
+
+- name: generate-keys | Upload keys to mater nodes
+  shell: "rsync -av ~/keys/*.pem root@{{ item }}:~"
+  with_items: 
+   - "{{ groups['masters'] }}"

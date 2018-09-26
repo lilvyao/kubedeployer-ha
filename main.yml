@@ -1,0 +1,67 @@
+---
+- hosts: all
+  gather_facts: yes
+
+#Get the environment ready by changing a few system settings on masters
+- hosts: masters
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: prep-work}
+
+#Create k8s keys and certs and sync the keys/certs on all master nodes
+- hosts: masters[0]
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: generate-keys}
+
+#Install and setup HAProxy Load Balancer on all master nodes
+- hosts: masters
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: setup-haproxy}
+
+#Install and setup ETCD on all master nodes
+- hosts: masters
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: setup-etcd}
+
+#Setup Kubernetes master nodes
+- hosts: masters
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: setup-masters}
+
+#Setup Weave Net plug-in
+- hosts: masters[0]
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: setup-weave-net}
+
+#Setup Kubernetes worker nodes
+- hosts: workers
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: setup-workers}
+
+#Setup nginx ingress controller
+- hosts: masters[0]
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: setup-ingress}

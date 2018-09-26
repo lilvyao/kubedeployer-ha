@@ -1,0 +1,56 @@
+---
+
+- name: setup-masters | Install k8s components | Template kubeadm config
+  template:
+    src: "config.yaml.j2"
+    dest: "~/config.yaml"
+    mode: 0755
+    owner: "root"
+    group: "root"
+
+- name: setup-masters | Deploy k8s cluster through kubeadm | Run kubeadmin init on first master node
+  shell: kubeadm init --config=/root/config.yaml
+  when: inventory_hostname in groups['first-master']
+
+- name: setup-masters | Setup k8s keys and certs | Upload k8s keys and cers to other mater nodes
+  shell: "rsync -av /etc/kubernetes/pki root@{{ item }}:~"
+  with_items: 
+   - "{{ groups['masters'] }}"
+  when: inventory_hostname in groups['first-master']
+
+- name: setup-masters | Setup k8s keys and certs | Remove k8s api server keys and cers from other mater nodes
+  shell: "rm -rf ~/pki/apiserver.*"
+  when: inventory_hostname not in groups['first-master']
+
+- name: setup-masters | Setup k8s keys and certs | Move keys and cers to /etc/kubernetes/ on other mater nodes
+  shell: "mv ~/pki /etc/kubernetes/"
+  when: inventory_hostname not in groups['first-master']
+
+- name: setup-masters | Deploy k8s cluster through kubeadm | Run kubeadmin init on other master nodes
+  shell: kubeadm init --config=/root/config.yaml
+  when: inventory_hostname not in groups['first-master']
+
+- name: Setup master | Deploy k8s cluster through kubeadm | Enable and restart kubelet engine
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    state: restarted
+    enabled: yes
+
+- name: setup-masters | Configure master nodes | Enable kubectl for root
+  shell: "{{ item }}"
+  with_items:
+    - mkdir -p $HOME/.kube
+    - sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    - sudo chown $(id -u):$(id -g) $HOME/.kube/config
+    - "source <(kubectl completion bash)"
+    - "echo 'source <(kubectl completion bash)' >> ~/.bashrc"
+  ignore_errors: yes
+
+- name: setup-masters | Configure master nodes | Enable pod deployment on masters nodes
+  shell: kubectl taint nodes --all node-role.kubernetes.io/master-
+  run_once: true
+
+- name: setup-masters | Configure master nodes | Create a permanent token for worker nodes to join
+  shell: "kubeadm token create {{ TOKEN }} --ttl 0"
+  run_once: true

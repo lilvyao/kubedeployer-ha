@@ -1,0 +1,21 @@
+---
+
+- name: setup-haproxy | Install HAProxy
+  yum:
+   name: haproxy-1.5.18
+   state: present
+
+- name: setup-haproxy | Copy over the HAProxy configuation file
+  template:
+    src: haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: 0644
+
+- name: setup-haproxy | Restart HAProxy service
+  systemd:
+    name: haproxy
+    daemon_reload: yes
+    state: restarted
+    enabled: yes

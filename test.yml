@@ -1,0 +1,11 @@
+---
+- hosts: all
+  gather_facts: yes
+
+#Setup nginx ingress controller
+- hosts: masters[0]
+  become: true
+  become_user: root
+  become_method: sudo
+  roles:
+  - { role: setup-ingress}

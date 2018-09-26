@@ -1,0 +1,8 @@
+{
+    "auths": {
+        "https://dockerrepo:5000": {
+            "auth":"ZG9ja2VydXNlcjp0ZXN0Li4uMTEx"
+        }
+    },
+    "host": "[tcp://0.0.0.0:2375]"
+}

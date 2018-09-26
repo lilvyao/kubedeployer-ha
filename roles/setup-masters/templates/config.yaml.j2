@@ -1,0 +1,21 @@
+apiVersion: kubeadm.k8s.io/v1alpha1
+kind: MasterConfiguration
+api:
+  advertiseAddress: {{ ansible_default_ipv4.address }}
+{% set url = [] %}
+{% for host in groups['masters'] -%}
+{% if url.append( '  - https://'~hostvars[host].ansible_default_ipv4.address~':2379' )%}{% endif %}
+{%- endfor -%}
+etcd:
+  endpoints:
+{{ url|join('\n') }}
+  caFile: /etc/etcd/ca.pem
+  certFile: /etc/etcd/kubernetes.pem
+  keyFile: /etc/etcd/kubernetes-key.pem
+networking:
+  podSubnet: {{ POD_SUBNET_CIDR }}
+  serviceSubnet: {{ SERVICE_SUBNET_CIDR }}
+apiServerCertSANs:
+- {{ ansible_default_ipv4.address }}
+apiServerExtraArgs:
+  apiserver-count: "3"
